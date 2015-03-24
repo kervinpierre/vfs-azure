@@ -18,6 +18,11 @@ package com.sludev.commons.vfs2.provider.azure;
 
 import org.apache.commons.vfs2.FileSystem;
 import org.apache.commons.vfs2.FileSystemConfigBuilder;
+import org.apache.commons.vfs2.FileSystemException;
+import org.apache.commons.vfs2.FileSystemOptions;
+import org.apache.commons.vfs2.UserAuthenticator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -25,6 +30,8 @@ import org.apache.commons.vfs2.FileSystemConfigBuilder;
  */
 public class AzFileSystemConfigBuilder  extends FileSystemConfigBuilder
 {
+    private static final Logger log = LoggerFactory.getLogger(AzFileSystemConfigBuilder.class);
+    private static final AzFileSystemConfigBuilder BUILDER = new AzFileSystemConfigBuilder();
 
     @Override
     protected Class<? extends FileSystem> getConfigClass()
@@ -32,4 +39,40 @@ public class AzFileSystemConfigBuilder  extends FileSystemConfigBuilder
         return AzFileSystem.class;
     }
     
+    protected AzFileSystemConfigBuilder(String prefix)
+    {
+        super(prefix);
+    }
+
+    private AzFileSystemConfigBuilder()
+    {
+        super("azure.");
+    }
+    
+    public static AzFileSystemConfigBuilder getInstance()
+    {
+        return BUILDER;
+    }
+    
+    /**
+     * Sets the user authenticator to get authentication informations.
+     * @param opts The FileSystemOptions.
+     * @param userAuthenticator The UserAuthenticator.
+     * @throws FileSystemException if an error occurs setting the UserAuthenticator.
+     */
+    public void setUserAuthenticator(FileSystemOptions opts, UserAuthenticator userAuthenticator)
+            throws FileSystemException
+    {
+        setParam(opts, "userAuthenticator", userAuthenticator);
+    }
+    
+    /**
+     * @see #setUserAuthenticator
+     * @param opts The FileSystemOptions.
+     * @return The UserAuthenticator.
+     */
+    public UserAuthenticator getUserAuthenticator(FileSystemOptions opts)
+    {
+        return (UserAuthenticator) getParam(opts, "userAuthenticator");
+    }
 }

@@ -2,9 +2,24 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sludev.commons</groupId>
-    <artifactId>vfs-azure</artifactId>
+    <artifactId>vfs-simpleshell</artifactId>
     <version>0.9</version>
     <packaging>jar</packaging>
+    <build>
+        <plugins>
+             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.sludev.commons.vfs.simpleshell.SimpleShell</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
     <dependencies>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -16,16 +31,6 @@
             <artifactId>commons-lang3</artifactId>
             <version>3.3.2</version>
             <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-collections4</artifactId>
-            <version>4.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.microsoft.azure</groupId>
-            <artifactId>azure-storage</artifactId>
-            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -53,7 +58,17 @@
             <artifactId>log4j-core</artifactId>
             <version>LATEST</version>
         </dependency>
-
+        <dependency>
+          <groupId>jline</groupId>
+          <artifactId>jline</artifactId>
+          <version>2.12</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sludev.commons</groupId>
+            <artifactId>vfs-azure</artifactId>
+            <version>0.9</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

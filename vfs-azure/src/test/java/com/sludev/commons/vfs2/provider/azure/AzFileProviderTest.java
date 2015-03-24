@@ -19,10 +19,14 @@ package com.sludev.commons.vfs2.provider.azure;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.nio.file.Paths;
 import java.util.Properties;
 import junit.framework.Assert;
+import org.apache.commons.vfs2.FileContent;
+import org.apache.commons.vfs2.FileName;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemOptions;
+import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.Selectors;
 import org.apache.commons.vfs2.auth.StaticUserAuthenticator;
 import org.apache.commons.vfs2.impl.DefaultFileSystemConfigBuilder;
@@ -32,6 +36,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
@@ -117,6 +122,7 @@ public class AzFileProviderTest
                 String.format("file://%s", temp.getAbsolutePath()));
         
         currFile.copyFrom(currFile2, Selectors.SELECT_SELF);
+        temp.delete();
     }
     
     @Test
@@ -179,6 +185,7 @@ public class AzFileProviderTest
     }
     
     @Test
+    @Ignore
     public void exist01() throws Exception
     {
         String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
@@ -214,5 +221,140 @@ public class AzFileProviderTest
         
         existRes = currFile.exists();
         Assert.assertFalse(existRes);
+    }
+    
+    @Test
+    @Ignore
+    public void getContentSize01() throws Exception
+    {
+        String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
+        String currKey = testProperties.getProperty("azure.account.key");
+        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        String currFileNameStr;
+        
+        DefaultFileSystemManager currMan = new DefaultFileSystemManager();
+        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.init(); 
+        
+        StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
+        FileSystemOptions opts = new FileSystemOptions(); 
+        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
+        
+        currFileNameStr = "test01.tmp";
+        String currUriStr = String.format("%s://%s/%s/%s", 
+                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+        FileObject currFile = currMan.resolveFile(currUriStr, opts);
+        
+        log.info( String.format("exist() file '%s'", currUriStr));
+        
+        FileContent cont = currFile.getContent();
+        long contSize = cont.getSize();
+        
+        Assert.assertTrue(contSize>0);
+        
+    }
+    
+    @Test
+    public void uploadFileSetup02() throws Exception
+    {
+        String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
+        String currKey = testProperties.getProperty("azure.account.key");
+        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        
+        File temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 01");      
+        AzTestUtils.uploadFile(currAccountStr, currKey, currContainerStr, temp.toPath(),
+                               Paths.get("uploadFile02/dir01/file01"));
+        temp.delete();
+        
+        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 02");      
+        AzTestUtils.uploadFile(currAccountStr, currKey, currContainerStr, temp.toPath(),
+                               Paths.get("uploadFile02/dir01/file02"));
+        temp.delete();
+        
+        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 03");      
+        AzTestUtils.uploadFile(currAccountStr, currKey, currContainerStr, temp.toPath(),
+                               Paths.get("uploadFile02/dir02/file03"));
+        temp.delete();
+        
+        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 04");      
+        AzTestUtils.uploadFile(currAccountStr, currKey, currContainerStr, temp.toPath(),
+                               Paths.get("uploadFile02/file04"));
+        temp.delete();
+        
+        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 05");      
+        AzTestUtils.uploadFile(currAccountStr, currKey, currContainerStr, temp.toPath(),
+                               Paths.get("file05"));
+        temp.delete();
+        
+        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 06");      
+        AzTestUtils.uploadFile(currAccountStr, currKey, currContainerStr, temp.toPath(),
+                               Paths.get("uploadFile02/dir02/file06"));
+        temp.delete();
+    }
+  
+    /**
+     * By default FileObject.getChildren() will use doListChildrenResolved() if available
+     * 
+     * @throws Exception 
+     */
+    @Test
+    public void listChildren01() throws Exception
+    {
+        String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
+        String currKey = testProperties.getProperty("azure.account.key");
+        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        
+        DefaultFileSystemManager currMan = new DefaultFileSystemManager();
+        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.init(); 
+        
+        StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
+        FileSystemOptions opts = new FileSystemOptions(); 
+        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
+        
+        String currFileNameStr = "uploadFile02";
+        String currUriStr = String.format("%s://%s/%s/%s", 
+                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+        FileObject currFile = currMan.resolveFile(currUriStr, opts);
+        
+        FileObject[] currObjs = currFile.getChildren();
+        for(FileObject obj : currObjs)
+        {
+            FileName currName = obj.getName();
+            Boolean res = obj.exists();
+            FileType ft = obj.getType();
+            
+            log.info( String.format("\nNAME.PATH : '%s'\nEXISTS : %b\nTYPE : %s\n\n", 
+                           currName.getPath(), res, ft));
+        }
+    }
+    
+    @Test
+    public void testContent() throws Exception
+    {
+        String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
+        String currKey = testProperties.getProperty("azure.account.key");
+        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        String currFileNameStr;
+        
+        DefaultFileSystemManager currMan = new DefaultFileSystemManager();
+        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.init(); 
+        
+        StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
+        FileSystemOptions opts = new FileSystemOptions(); 
+        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
+        
+        currFileNameStr = "file05";
+        String currUriStr = String.format("%s://%s/%s/%s", 
+                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+        FileObject currFile = currMan.resolveFile(currUriStr, opts);
+        
+        FileContent content = currFile.getContent();
+        long size = content.getSize();
+        Assert.assertTrue( size >= 0);
+        
+        long modTime = content.getLastModifiedTime();
+        Assert.assertTrue(modTime>0);
     }
 }

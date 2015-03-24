@@ -30,6 +30,8 @@ import org.apache.commons.vfs2.FileSystem;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemOptions;
 import org.apache.commons.vfs2.UserAuthenticationData;
+import org.apache.commons.vfs2.UserAuthenticator;
+import org.apache.commons.vfs2.impl.DefaultFileSystemConfigBuilder;
 import org.apache.commons.vfs2.provider.AbstractOriginatingFileProvider;
 import org.apache.commons.vfs2.provider.GenericFileName;
 import org.apache.commons.vfs2.util.UserAuthenticatorUtils;
@@ -44,6 +46,8 @@ public class AzFileProvider
                   extends AbstractOriginatingFileProvider
 {
     private static final Logger log = LoggerFactory.getLogger(AzFileProvider.class);
+    
+    private static final FileSystemOptions DEFAULT_OPTIONS = new FileSystemOptions();
     
     public static final UserAuthenticationData.Type[] AUTHENTICATOR_TYPES = new UserAuthenticationData.Type[]
         {
@@ -60,12 +64,29 @@ public class AzFileProvider
         Capability.ATTRIBUTES,
         Capability.RANDOM_ACCESS_READ,
         Capability.DIRECTORY_READ_CONTENT,
+        Capability.LIST_CHILDREN,
+        Capability.LAST_MODIFIED,
+        Capability.GET_LAST_MODIFIED,
+        Capability.SET_LAST_MODIFIED_FILE,
+        Capability.CREATE,
+        Capability.DELETE
     }));
 
     public AzFileProvider()
     {
         super();
         setFileNameParser(AzFileNameParser.getInstance());
+    }
+    
+    /**
+     * In the case that we are not sent FileSystemOptions object, we need to have
+     * one handy.
+     * 
+     * @return 
+     */
+    public FileSystemOptions getDefaultFileSystemOptions()
+    {
+        return DEFAULT_OPTIONS;
     }
     
     @Override
@@ -78,10 +99,24 @@ public class AzFileProvider
         CloudStorageAccount storageAccount;
         CloudBlobClient client;
         
+        FileSystemOptions currFSO;
+        UserAuthenticator ua;
+        
+        if( fileSystemOptions == null )
+        {
+            currFSO = getDefaultFileSystemOptions();
+            ua = AzFileSystemConfigBuilder.getInstance().getUserAuthenticator(currFSO);  
+        }
+        else
+        {
+            currFSO = fileSystemOptions;
+            ua = DefaultFileSystemConfigBuilder.getInstance().getUserAuthenticator(currFSO);
+        }
+        
         UserAuthenticationData authData = null;
         try
         {
-            authData = UserAuthenticatorUtils.authenticate(fileSystemOptions, AUTHENTICATOR_TYPES);
+            authData = ua.requestAuthentication(AUTHENTICATOR_TYPES);
             
             String currAcct = UserAuthenticatorUtils.toString(UserAuthenticatorUtils.getData(authData,
                     UserAuthenticationData.USERNAME, UserAuthenticatorUtils.toChar(genRootName.getUserName())));
