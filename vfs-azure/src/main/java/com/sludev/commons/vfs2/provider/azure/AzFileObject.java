@@ -16,6 +16,7 @@
  */
 package com.sludev.commons.vfs2.provider.azure;
 
+import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobContainerProperties;
 import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
@@ -24,8 +25,6 @@ import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -33,8 +32,11 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.vfs2.FileName;
+import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileType;
+import org.apache.commons.vfs2.NameScope;
 import org.apache.commons.vfs2.provider.AbstractFileName;
 import org.apache.commons.vfs2.provider.AbstractFileObject;
 import org.apache.commons.vfs2.provider.URLFileName;
@@ -50,12 +52,20 @@ public class AzFileObject extends AbstractFileObject
     private static final Logger log = LoggerFactory.getLogger(AzFileObject.class);
     
     private final AzFileSystem fileSystem;
+    private CloudBlobContainer currContainer;
+    private CloudBlockBlob currBlob;
+    private BlobContainerProperties currContainerProperties;
+    private BlobProperties currBlobProperties;
     
     protected AzFileObject(final AbstractFileName name, final AzFileSystem fileSystem)
     {
         super(name, fileSystem);
         this.fileSystem = fileSystem;
         
+        currContainer = null;
+        currBlob = null;
+        currBlobProperties = null;
+        currContainerProperties = null;
     }
 
     protected Pair<String, String> getContainerAndPath()
@@ -101,7 +111,6 @@ public class AzFileObject extends AbstractFileObject
     protected void doAttach() throws Exception
     {
         Pair<String, String> path = getContainerAndPath();
-        CloudBlobContainer currContainer = null;
         
         try
         {
@@ -117,29 +126,16 @@ public class AzFileObject extends AbstractFileObject
             throw ex;
         }
         
-        BlobContainerProperties currContainerProperties = currContainer.getProperties();
-        String containerEtag = currContainerProperties.getEtag();
-        
-        URI containerUri = currContainer.getUri();
-        
-        CloudBlockBlob currBlob = currContainer.getBlockBlobReference(path.getRight());
-        boolean existRes = currBlob.exists();
+        currBlob = currContainer.getBlockBlobReference(path.getRight());
     }
     
     @Override
     protected FileType doGetType() throws Exception
     {
         FileType res;
-        
-        // Let's not cache, intead contact the data store every time.
-        
+
         Pair<String, String> path = getContainerAndPath();
-        
-        // Check the container.  Force a network call.
-        CloudBlobContainer currContainer 
-                = fileSystem.getClient().getContainerReference(path.getLeft());
-        CloudBlockBlob currBlob = currContainer.getBlockBlobReference(path.getRight());
-        
+
         if( currBlob.exists() )
         {
             res = FileType.FILE;
@@ -198,10 +194,7 @@ public class AzFileObject extends AbstractFileObject
         String[] res = null;
         
         Pair<String, String> path = getContainerAndPath();
-        
-        CloudBlobContainer currContainer 
-                = fileSystem.getClient().getContainerReference(path.getLeft());
-        
+
         String prefix = path.getRight();
         if( prefix.endsWith("/") == false )
         {
@@ -236,47 +229,66 @@ public class AzFileObject extends AbstractFileObject
         return res;
     }
 
-    /**
-     * 
-     * This call is tried first before doListChildren() allowing the FileObject to resolve objects
-     * directly.
-     * 
-     * Currently I prefer AbstractFileObject resolving the files.  So I'll let it do so.
-     * 
-     */
-    
 //    @Override
 //    protected FileObject[] doListChildrenResolved() throws Exception
 //    {
-//        FileObject[] res;
-//        List<AzFileObject> resList = new ArrayList<>();
+//        FileObject[] res = null;
 //        
-//        String[] childArray = doListChildren();
-//        for( String currUrl : childArray )
+//        Pair<String, String> path = getContainerAndPath();
+//
+//        String prefix = path.getRight();
+//        if( prefix.endsWith("/") == false )
 //        {
-//            AzFileObject currFO = (AzFileObject)this.resolveFile(currUrl);
-//            resList.add(currFO);
+//            // We need folders ( prefixes ) to end with a slash
+//            prefix += "/";
 //        }
 //        
-//        res = resList.toArray(new FileObject[resList.size()]);
+//        Iterable<ListBlobItem> blobs = null;
+//        if( prefix.equals("/") )
+//        {
+//            // Special root path case. List the root blobs with no prefix
+//            blobs = currContainer.listBlobs();
+//        }
+//        else
+//        {
+//            blobs = currContainer.listBlobs(prefix);
+//        }
+//        
+//        List<ListBlobItem> blobList = new ArrayList<>();
+//        
+//        // Pull it all in memory and work from there
+//        CollectionUtils.addAll(blobList, blobs);
+//        ArrayList<AzFileObject> resList = new ArrayList<>();
+//        for(ListBlobItem currBlobItem : blobList )
+//        {
+//            String currBlobStr = currBlobItem.getUri().getPath();
+//            AzFileObject childBlob = new AzFileObject();
+//            FileName currName = getFileSystem().getFileSystemManager().resolveName(name, file, NameScope.CHILD);
+//            
+//            resList.add(currBlobStr);
+//        }
+//        
+//        res = resList.toArray(new String[resList.size()]);
 //        
 //        return res;
 //    }
 
+    private void checkBlobProperties() throws StorageException
+    {
+        if( currBlobProperties == null )
+        {
+            currBlob.downloadAttributes();
+            currBlobProperties = currBlob.getProperties();
+        }
+    }
+    
     @Override
     protected long doGetContentSize() throws Exception
     {
         long res = -1;
         
-        Pair<String, String> path = getContainerAndPath();
-        
-        CloudBlobContainer currContainer 
-                = fileSystem.getClient().getContainerReference(path.getLeft());
-        CloudBlockBlob currBlob = currContainer.getBlockBlobReference(path.getRight());
-        currBlob.downloadAttributes();
-        BlobProperties props = currBlob.getProperties();
-        
-        res = props.getLength();
+        checkBlobProperties();
+        res = currBlobProperties.getLength();
         
         return res;
     }
@@ -284,12 +296,6 @@ public class AzFileObject extends AbstractFileObject
     @Override
     protected InputStream doGetInputStream() throws Exception
     {
-        Pair<String, String> path = getContainerAndPath();
-        
-        CloudBlobContainer currContainer 
-                = fileSystem.getClient().getContainerReference(path.getLeft());
-        CloudBlockBlob currBlob = currContainer.getBlockBlobReference(path.getRight());
-        
         BlobInputStream in = currBlob.openInputStream();
         
         return in;
@@ -298,12 +304,6 @@ public class AzFileObject extends AbstractFileObject
     @Override
     protected void doDelete() throws Exception
     {
-        Pair<String, String> path = getContainerAndPath();
-        
-        CloudBlobContainer currContainer 
-                = fileSystem.getClient().getContainerReference(path.getLeft());
-        CloudBlockBlob currBlob = currContainer.getBlockBlobReference(path.getRight());
-        
         // Purposely use the more restrictive delete() over deleteIfExists()
         currBlob.delete();
     }
@@ -330,16 +330,19 @@ public class AzFileObject extends AbstractFileObject
     protected OutputStream doGetOutputStream(boolean bAppend) throws Exception
     {
         OutputStream res;
-        
-        Pair<String, String> path = getContainerAndPath();
-        
-        CloudBlobContainer currContainer 
-                = fileSystem.getClient().getContainerReference(path.getLeft());
-        CloudBlockBlob currBlob = currContainer.getBlockBlobReference(path.getRight());
-        
+
         res = currBlob.openOutputStream();
         
         return res;
+    }
+
+    @Override
+    protected void doDetach() throws Exception
+    {
+        currBlob = null;
+        currContainer = null;
+        currBlobProperties = null;
+        currContainerProperties = null;
     }
 
     @Override
@@ -347,49 +350,11 @@ public class AzFileObject extends AbstractFileObject
     {
         long res;
         
-        Pair<String, String> path = getContainerAndPath();
-        
-        CloudBlobContainer currContainer 
-                = fileSystem.getClient().getContainerReference(path.getLeft());
-        CloudBlockBlob currBlob = currContainer.getBlockBlobReference(path.getRight());
-        
-        currBlob.downloadAttributes();
-        BlobProperties props = currBlob.getProperties();
-        
-        Date lm = props.getLastModified();
+        checkBlobProperties();
+        Date lm = currBlobProperties.getLastModified();
         
         res = lm.getTime();
         
         return res;
     }
-
-    @Override
-    protected boolean doSetLastModifiedTime(long modtime) throws Exception
-    {
-        boolean res;
-        
-        Pair<String, String> path = getContainerAndPath();
-        
-        CloudBlobContainer currContainer 
-                = fileSystem.getClient().getContainerReference(path.getLeft());
-        CloudBlockBlob currBlob = currContainer.getBlockBlobReference(path.getRight());
-        
-        currBlob.downloadAttributes();
-        
-        BlobProperties props = currBlob.getProperties();
-        Date currDate = props.getLastModified();
-        
-        Method setLastModified = props.getClass().getDeclaredMethod("setLastModified", Date.class);
-        
-        Date lm = new Date(modtime);
-        setLastModified.setAccessible(true);
-        setLastModified.invoke(props, lm);
-        currBlob.uploadProperties();
-        
-        res = true;
-        
-        return res;
-    }
-    
-    
 }

@@ -60,14 +60,12 @@ public class AzFileProvider
         Capability.READ_CONTENT,
         Capability.APPEND_CONTENT,
         Capability.URI,
-        Capability.GET_LAST_MODIFIED,
         Capability.ATTRIBUTES,
         Capability.RANDOM_ACCESS_READ,
         Capability.DIRECTORY_READ_CONTENT,
         Capability.LIST_CHILDREN,
         Capability.LAST_MODIFIED,
         Capability.GET_LAST_MODIFIED,
-        Capability.SET_LAST_MODIFIED_FILE,
         Capability.CREATE,
         Capability.DELETE
     }));
