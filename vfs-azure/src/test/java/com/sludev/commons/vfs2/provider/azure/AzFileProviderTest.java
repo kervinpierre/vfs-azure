@@ -36,10 +36,11 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
+import org.junit.FixMethodOrder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
+import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author kervin
  */
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class AzFileProviderTest
 {
     private static final Logger log = LoggerFactory.getLogger(AzFileProviderTest.class);
@@ -61,7 +63,7 @@ public class AzFileProviderTest
     public TestWatcher testWatcher = new AzTestWatcher();
     
     @Before
-    public void setUp() 
+    public void setUp()
     {
         
         /**
@@ -69,6 +71,18 @@ public class AzFileProviderTest
          * in our source code.
          */
         testProperties = AzTestProperties.GetProperties();
+        
+        try
+        {
+            /**
+             * Setup the remote folders for testing
+             */
+            uploadFileSetup02();
+        }
+        catch (Exception ex)
+        {
+            log.debug("Error setting up remote folder structure.  Have you set the test001.properties file?", ex);
+        }
     }
     
     @BeforeClass
@@ -82,19 +96,21 @@ public class AzFileProviderTest
     }
     
     @After
-    public void tearDown()
+    public void tearDown() throws Exception
     {
+        removeFileSetup02();
     }
 
     /**
      * 
      */
     @Test
-    public void uploadFile01() throws Exception
+    public void A001_uploadFile() throws Exception
     {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
+        String currAccountStr = testProperties.getProperty("azure.account.name");
         String currKey = testProperties.getProperty("azure.account.key");
         String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
         String currFileNameStr;
         
         File temp = File.createTempFile("uploadFile01", ".tmp");
@@ -116,7 +132,7 @@ public class AzFileProviderTest
         
         currFileNameStr = "test01.tmp";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         FileObject currFile2 = currMan.resolveFile(
                 String.format("file://%s", temp.getAbsolutePath()));
@@ -126,11 +142,12 @@ public class AzFileProviderTest
     }
     
     @Test
-    public void downloadFile01() throws Exception
+    public void A002_downloadFile() throws Exception
     {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
+        String currAccountStr = testProperties.getProperty("azure.account.name"); 
         String currKey = testProperties.getProperty("azure.account.key");
         String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        String currHost = testProperties.getProperty("azure.host"); // <account>.blob.core.windows.net
         String currFileNameStr;
         
         File temp = File.createTempFile("downloadFile01", ".tmp");
@@ -146,7 +163,7 @@ public class AzFileProviderTest
         
         currFileNameStr = "test01.tmp";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         
         String destStr = String.format("file://%s", temp.getAbsolutePath());
@@ -158,11 +175,12 @@ public class AzFileProviderTest
     }
     
     @Test
-    public void deleteFile01() throws Exception
+    public void A003_exist() throws Exception
     {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
+        String currAccountStr = testProperties.getProperty("azure.account.name"); 
         String currKey = testProperties.getProperty("azure.account.key");
         String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
         String currFileNameStr;
         
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
@@ -175,35 +193,7 @@ public class AzFileProviderTest
         
         currFileNameStr = "test01.tmp";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
-        FileObject currFile = currMan.resolveFile(currUriStr, opts);
-        
-        log.info( String.format("deleting '%s'", currUriStr));
-        
-        Boolean delRes = currFile.delete();
-        Assert.assertTrue(delRes);
-    }
-    
-    @Test
-    @Ignore
-    public void exist01() throws Exception
-    {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
-        String currKey = testProperties.getProperty("azure.account.key");
-        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
-        String currFileNameStr;
-        
-        DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
-        currMan.init(); 
-        
-        StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
-        FileSystemOptions opts = new FileSystemOptions(); 
-        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
-        
-        currFileNameStr = "test01.tmp";
-        String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         
         log.info( String.format("exist() file '%s'", currUriStr));
@@ -224,12 +214,12 @@ public class AzFileProviderTest
     }
     
     @Test
-    @Ignore
-    public void getContentSize01() throws Exception
+    public void A004_getContentSize() throws Exception
     {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
+        String currAccountStr = testProperties.getProperty("azure.account.name"); 
         String currKey = testProperties.getProperty("azure.account.key");
         String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
         String currFileNameStr;
         
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
@@ -242,7 +232,7 @@ public class AzFileProviderTest
         
         currFileNameStr = "test01.tmp";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         
         log.info( String.format("exist() file '%s'", currUriStr));
@@ -253,44 +243,6 @@ public class AzFileProviderTest
         Assert.assertTrue(contSize>0);
         
     }
-    
-    @Test
-    public void uploadFileSetup02() throws Exception
-    {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
-        String currKey = testProperties.getProperty("azure.account.key");
-        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
-        
-        File temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 01");      
-        AzTestUtils.uploadFile(currAccountStr, currKey, currContainerStr, temp.toPath(),
-                               Paths.get("uploadFile02/dir01/file01"));
-        temp.delete();
-        
-        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 02");      
-        AzTestUtils.uploadFile(currAccountStr, currKey, currContainerStr, temp.toPath(),
-                               Paths.get("uploadFile02/dir01/file02"));
-        temp.delete();
-        
-        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 03");      
-        AzTestUtils.uploadFile(currAccountStr, currKey, currContainerStr, temp.toPath(),
-                               Paths.get("uploadFile02/dir02/file03"));
-        temp.delete();
-        
-        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 04");      
-        AzTestUtils.uploadFile(currAccountStr, currKey, currContainerStr, temp.toPath(),
-                               Paths.get("uploadFile02/file04"));
-        temp.delete();
-        
-        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 05");      
-        AzTestUtils.uploadFile(currAccountStr, currKey, currContainerStr, temp.toPath(),
-                               Paths.get("file05"));
-        temp.delete();
-        
-        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 06");      
-        AzTestUtils.uploadFile(currAccountStr, currKey, currContainerStr, temp.toPath(),
-                               Paths.get("uploadFile02/dir02/file06"));
-        temp.delete();
-    }
   
     /**
      * By default FileObject.getChildren() will use doListChildrenResolved() if available
@@ -298,11 +250,12 @@ public class AzFileProviderTest
      * @throws Exception 
      */
     @Test
-    public void listChildren01() throws Exception
+    public void A005_listChildren() throws Exception
     {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
+        String currAccountStr = testProperties.getProperty("azure.account.name"); 
         String currKey = testProperties.getProperty("azure.account.key");
         String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
         
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
         currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
@@ -314,7 +267,7 @@ public class AzFileProviderTest
         
         String currFileNameStr = "uploadFile02";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         
         FileObject[] currObjs = currFile.getChildren();
@@ -330,11 +283,12 @@ public class AzFileProviderTest
     }
     
     @Test
-    public void testContent() throws Exception
+    public void A006_testContent() throws Exception
     {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
+        String currAccountStr = testProperties.getProperty("azure.account.name"); 
         String currKey = testProperties.getProperty("azure.account.key");
         String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
         String currFileNameStr;
         
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
@@ -347,7 +301,7 @@ public class AzFileProviderTest
         
         currFileNameStr = "file05";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         
         FileContent content = currFile.getContent();
@@ -356,5 +310,97 @@ public class AzFileProviderTest
         
         long modTime = content.getLastModifiedTime();
         Assert.assertTrue(modTime>0);
+    }
+    
+    @Test
+    public void A007_deleteFile() throws Exception
+    {
+        String currAccountStr = testProperties.getProperty("azure.account.name"); 
+        String currKey = testProperties.getProperty("azure.account.key");
+        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
+        String currFileNameStr;
+        
+        DefaultFileSystemManager currMan = new DefaultFileSystemManager();
+        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.init(); 
+        
+        StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
+        FileSystemOptions opts = new FileSystemOptions(); 
+        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
+        
+        currFileNameStr = "test01.tmp";
+        String currUriStr = String.format("%s://%s/%s/%s", 
+                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
+        FileObject currFile = currMan.resolveFile(currUriStr, opts);
+        
+        log.info( String.format("deleting '%s'", currUriStr));
+        
+        Boolean delRes = currFile.delete();
+        Assert.assertTrue(delRes);
+    }
+    
+    public void removeFileSetup02() throws Exception
+    {
+        String currAccountStr = testProperties.getProperty("azure.account.name"); 
+        String currKey = testProperties.getProperty("azure.account.key");
+        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
+            
+        AzTestUtils.deleteFile(currAccountStr, currHost, currKey, currContainerStr,
+                               Paths.get("uploadFile02/dir01/file01"));
+              
+        AzTestUtils.deleteFile(currAccountStr, currHost, currKey, currContainerStr,
+                               Paths.get("uploadFile02/dir01/file02"));
+        
+        AzTestUtils.deleteFile(currAccountStr, currHost, currKey, currContainerStr,
+                               Paths.get("uploadFile02/dir02/file03"));
+    
+        AzTestUtils.deleteFile(currAccountStr, currHost, currKey, currContainerStr,
+                               Paths.get("uploadFile02/file04"));
+     
+        AzTestUtils.deleteFile(currAccountStr, currHost, currKey, currContainerStr,
+                               Paths.get("file05"));
+   
+        AzTestUtils.deleteFile(currAccountStr, currHost, currKey, currContainerStr,
+                               Paths.get("uploadFile02/dir02/file06"));
+    }
+    
+    public void uploadFileSetup02() throws Exception
+    {
+        String currAccountStr = testProperties.getProperty("azure.account.name"); 
+        String currKey = testProperties.getProperty("azure.account.key");
+        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
+        
+        File temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 01");      
+        AzTestUtils.uploadFile(currAccountStr, currHost, currKey, currContainerStr, temp.toPath(),
+                               Paths.get("uploadFile02/dir01/file01"));
+        temp.delete();
+        
+        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 02");      
+        AzTestUtils.uploadFile(currAccountStr, currHost, currKey, currContainerStr, temp.toPath(),
+                               Paths.get("uploadFile02/dir01/file02"));
+        temp.delete();
+        
+        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 03");      
+        AzTestUtils.uploadFile(currAccountStr, currHost, currKey, currContainerStr, temp.toPath(),
+                               Paths.get("uploadFile02/dir02/file03"));
+        temp.delete();
+        
+        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 04");      
+        AzTestUtils.uploadFile(currAccountStr, currHost, currKey, currContainerStr, temp.toPath(),
+                               Paths.get("uploadFile02/file04"));
+        temp.delete();
+        
+        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 05");      
+        AzTestUtils.uploadFile(currAccountStr, currHost, currKey, currContainerStr, temp.toPath(),
+                               Paths.get("file05"));
+        temp.delete();
+        
+        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 06");      
+        AzTestUtils.uploadFile(currAccountStr, currHost, currKey, currContainerStr, temp.toPath(),
+                               Paths.get("uploadFile02/dir02/file06"));
+        temp.delete();
     }
 }

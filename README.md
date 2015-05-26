@@ -15,6 +15,7 @@ Here is an example using the API
 String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
 String currKey = testProperties.getProperty("azure.account.key");
 String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
+String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
 String currFileNameStr;
 
 // Now let's create a temp file just for upload
@@ -41,7 +42,7 @@ DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth);
 // Create a URL for creating this remote file
 currFileNameStr = "test01.tmp";
 String currUriStr = String.format("%s://%s/%s/%s", 
-                   AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                   AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
 
 // Resolve the imaginary file remotely.  So we have a file object
 FileObject currFile = currMan.resolveFile(currUriStr, opts);

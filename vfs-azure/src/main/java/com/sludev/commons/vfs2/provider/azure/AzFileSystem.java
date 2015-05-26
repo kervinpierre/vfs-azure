@@ -29,8 +29,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
- * @author kervin
+ * File-System object represents a connect to Microsoft Azure Blob via a single client.
+ * 
+ * @author Kervin Pierre
  */
 public class AzFileSystem
     extends AbstractFileSystem
@@ -40,6 +41,11 @@ public class AzFileSystem
     
     private final CloudBlobClient client;
 
+    /**
+     * The single client for interacting with Azure Blob Storage.
+     * 
+     * @return 
+     */
     protected CloudBlobClient getClient()
     {
         return client;

@@ -17,8 +17,10 @@
 package com.sludev.commons.vfs2.provider.azure;
 
 /**
- *
- * @author kervin
+ * Various constants used in the provider.  Currently just the default scheme is 
+ * declared here but that might change in the future.
+ * 
+ * @author Kervin Pierre
  */
 public class AzConstants
 {

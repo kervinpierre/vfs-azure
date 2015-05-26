@@ -22,8 +22,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implementation for http. set default port to 80
- * @author <a href="http://commons.apache.org/vfs/team-list.html">Commons VFS team</a>
+ * Used for defining / parsing a provided FileName object.
+ * 
+ * This name should adhere to a URL structure, complete with an 'authority'
+ * 
+ * &lt;scheme&gt;://&lt;host_or_authority&gt;/&lt;container&gt;/&lt;file_path&gt;
+ * E.g. azsb://myAccount.blob.core.windows.net/myContainer/path/to/file.txt
+ * 
  */
 public class AzFileNameParser extends URLFileNameParser
 {
