@@ -346,8 +346,10 @@ public class AzFileObject extends AbstractFileObject
     @Override
     protected void doDelete() throws Exception
     {
-        // Purposely use the more restrictive delete() over deleteIfExists()
-        currBlob.delete();
+        // Use deleteIfExists() to simplify recursive deletes.
+        // Otherwise VFS will call delete() on an empty folder, and we know
+        // folders do not really exist.  Especially empty ones.
+        currBlob.deleteIfExists();
     }
 
     /**
