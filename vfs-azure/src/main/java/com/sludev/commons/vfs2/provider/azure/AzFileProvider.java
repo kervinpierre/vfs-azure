@@ -152,7 +152,7 @@ public class AzFileProvider
      * 
      * @return 
      */
-    public FileSystemOptions getDefaultFileSystemOptions()
+    public static FileSystemOptions getDefaultFileSystemOptions()
     {
         return DEFAULT_OPTIONS;
     }
@@ -175,20 +175,9 @@ public class AzFileProvider
         CloudStorageAccount storageAccount;
         CloudBlobClient client;
         
-        FileSystemOptions currFSO;
-        UserAuthenticator ua;
-        
-        if( fileSystemOptions == null )
-        {
-            currFSO = getDefaultFileSystemOptions();
-            ua = AzFileSystemConfigBuilder.getInstance().getUserAuthenticator(currFSO);  
-        }
-        else
-        {
-            currFSO = fileSystemOptions;
-            ua = DefaultFileSystemConfigBuilder.getInstance().getUserAuthenticator(currFSO);
-        }
-        
+        FileSystemOptions currFSO = (fileSystemOptions != null) ? fileSystemOptions : getDefaultFileSystemOptions();
+        UserAuthenticator ua = DefaultFileSystemConfigBuilder.getInstance().getUserAuthenticator(currFSO);
+
         UserAuthenticationData authData = null;
         try
         {

@@ -425,4 +425,17 @@ public class AzFileObject extends AbstractFileObject
         
         return res;
     }
+
+    /**
+     * We need to override this method, because the parent one throws an exception.
+     *
+     * @param modtime the last modified time to set.
+     * @return true if setting the last modified time was successful.
+     * @throws Exception
+     */
+    @Override
+    protected boolean doSetLastModifiedTime(long modtime) throws Exception
+    {
+        return true;
+    }
 }
