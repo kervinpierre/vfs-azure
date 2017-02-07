@@ -30,7 +30,7 @@ try(FileWriter fw = new FileWriter(temp))
 // Create an Apache Commons VFS manager option and add 2 providers. Local file and Azure.
 // All done programmatically
 DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
 currMan.addProvider("file", new DefaultLocalFileProvider());
 currMan.init(); 
 
@@ -42,7 +42,7 @@ DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth);
 // Create a URL for creating this remote file
 currFileNameStr = "test01.tmp";
 String currUriStr = String.format("%s://%s/%s/%s", 
-                   AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
+                   AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
 
 // Resolve the imaginary file remotely.  So we have a file object
 FileObject currFile = currMan.resolveFile(currUriStr, opts);
