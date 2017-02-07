@@ -122,7 +122,7 @@ public class AzFileProviderTest
         }
         
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
         currMan.addProvider("file", new DefaultLocalFileProvider());
         currMan.init(); 
         
@@ -132,7 +132,7 @@ public class AzFileProviderTest
         
         currFileNameStr = "test01.tmp";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         FileObject currFile2 = currMan.resolveFile(
                 String.format("file://%s", temp.getAbsolutePath()));
@@ -153,7 +153,7 @@ public class AzFileProviderTest
         File temp = File.createTempFile("downloadFile01", ".tmp");
         
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
         currMan.addProvider("file", new DefaultLocalFileProvider());
         currMan.init(); 
         
@@ -163,7 +163,7 @@ public class AzFileProviderTest
         
         currFileNameStr = "test01.tmp";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         
         String destStr = String.format("file://%s", temp.getAbsolutePath());
@@ -184,7 +184,7 @@ public class AzFileProviderTest
         String currFileNameStr;
         
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
         currMan.init(); 
         
         StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
@@ -193,7 +193,7 @@ public class AzFileProviderTest
         
         currFileNameStr = "test01.tmp";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         
         log.info( String.format("exist() file '%s'", currUriStr));
@@ -204,7 +204,7 @@ public class AzFileProviderTest
         
         currFileNameStr = "non-existant-file-8632857264.tmp";
         currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currAccountStr, currContainerStr, currFileNameStr);
         currFile = currMan.resolveFile(currUriStr, opts);
         
         log.info( String.format("exist() file '%s'", currUriStr));
@@ -223,7 +223,7 @@ public class AzFileProviderTest
         String currFileNameStr;
         
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
         currMan.init(); 
         
         StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
@@ -232,7 +232,7 @@ public class AzFileProviderTest
         
         currFileNameStr = "test01.tmp";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         
         log.info( String.format("exist() file '%s'", currUriStr));
@@ -258,7 +258,7 @@ public class AzFileProviderTest
         String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
         
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
         currMan.init(); 
         
         StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
@@ -267,7 +267,7 @@ public class AzFileProviderTest
         
         String currFileNameStr = "uploadFile02";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         
         FileObject[] currObjs = currFile.getChildren();
@@ -292,7 +292,7 @@ public class AzFileProviderTest
         String currFileNameStr;
         
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
         currMan.init(); 
         
         StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
@@ -301,7 +301,7 @@ public class AzFileProviderTest
         
         currFileNameStr = "file05";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         
         FileContent content = currFile.getContent();
@@ -322,7 +322,7 @@ public class AzFileProviderTest
         String currFileNameStr;
         
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
         currMan.init(); 
         
         StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
@@ -331,7 +331,7 @@ public class AzFileProviderTest
         
         currFileNameStr = "test01.tmp";
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         
         log.info( String.format("deleting '%s'", currUriStr));

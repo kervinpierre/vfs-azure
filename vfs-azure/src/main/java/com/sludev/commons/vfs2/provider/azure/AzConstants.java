@@ -27,10 +27,10 @@ public class AzConstants
     /**
      * Azure Blob Storage API
      */
-    public static final String AZSBSCHEME = "azsb";
+    public static final String AZBSSCHEME = "azbs";
     
     /**
      * Azure File Storage API
      */
-    public static final String AZSFSCHEME = "azsf";
+    public static final String AZFSSCHEME = "azfs";
 }

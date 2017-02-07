@@ -41,7 +41,7 @@ public class AzTestUtils
                                        Path localFile, Path remotePath) throws FileSystemException
     {
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
         currMan.addProvider("file", new DefaultLocalFileProvider());
         currMan.init(); 
         
@@ -50,7 +50,7 @@ public class AzTestUtils
         DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
         
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, accntHost, containerName, remotePath);
+                           AzConstants.AZBSSCHEME, accntHost, containerName, remotePath);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         FileObject currFile2 = currMan.resolveFile(
                 String.format("file://%s", localFile));
@@ -65,7 +65,7 @@ public class AzTestUtils
                                        Path remotePath) throws FileSystemException
     {
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
         currMan.init(); 
         
         StaticUserAuthenticator auth = new StaticUserAuthenticator("", accntName, accntKey);
@@ -73,7 +73,7 @@ public class AzTestUtils
         DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
         
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, accntHost, containerName, remotePath);
+                           AzConstants.AZBSSCHEME, accntHost, containerName, remotePath);
         FileObject currFile = currMan.resolveFile(currUriStr, opts);
         
         Boolean delRes = currFile.delete();
