@@ -32,6 +32,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.vfs2.FileNotFolderException;
+import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.provider.AbstractFileName;
@@ -437,5 +439,29 @@ public class AzFileObject extends AbstractFileObject
     protected boolean doSetLastModifiedTime(long modtime) throws Exception
     {
         return true;
+    }
+
+    /**
+     * Returns the file's list of children.
+     *
+     * @return The list of children
+     * @throws FileSystemException If there was a problem listing children
+     * @see AbstractFileObject#getChildren()
+     */
+    @Override
+    public FileObject[] getChildren() throws FileSystemException {
+
+        try {
+            // Folders which are copied from other folders, have type = IMAGINARY. We can not throw exception based on folder
+            // type only and so we have check here for content.
+            if (getType().hasContent()) {
+                throw new FileNotFolderException(getName());
+            }
+        }
+        catch (Exception ex) {
+            throw new FileNotFolderException(getName(), ex);
+        }
+
+        return super.getChildren();
     }
 }
