@@ -21,8 +21,11 @@ import com.microsoft.azure.storage.blob.BlobContainerProperties;
 import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -41,6 +44,9 @@ import org.apache.commons.vfs2.provider.AbstractFileObject;
 import org.apache.commons.vfs2.provider.URLFileName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.commons.vfs2.FileName.SEPARATOR;
+
 
 /**
  * The main FileObject class in this provider.  It holds most of the API callbacks
@@ -171,6 +177,7 @@ public class AzFileObject extends AbstractFileObject
         }
         else
         {
+
             // Blob Service does not have folders.  Just files with path separators in
             // their names.
             
@@ -195,8 +202,9 @@ public class AzFileObject extends AbstractFileObject
             {
                 blobs = currContainer.listBlobs(prefix);
             }
-            
-            if( blobs.iterator().hasNext() )
+
+            //Hack to get type as folder instead of imaginary, This would need to be revisited once we get sophisticated solution
+            if( blobs.iterator().hasNext() || !prefix.contains(".")) 
             {
                 res = FileType.FOLDER;
             }
@@ -356,14 +364,23 @@ public class AzFileObject extends AbstractFileObject
 
     /**
      * Callback for handling create folder requests.  Since there are no folders
-     * in Azure Cloud Storage this call is ingored.
+     * in Azure Cloud Storage this call is ignored.
      * 
      * @throws Exception 
      */
     @Override
     protected void doCreateFolder() throws Exception
     {
+
         log.info(String.format("doCreateFolder() called."));
+
+        String dirName = currBlob.getName().endsWith(SEPARATOR) ? currBlob.getName() : currBlob.getName() + SEPARATOR+"FlexONE";
+
+        CloudBlockBlob blob = currContainer.getBlockBlobReference(dirName);
+
+        InputStream input = new ByteArrayInputStream(new byte[0]);
+
+        blob.upload(input, 0);
     }
 
     /**
@@ -442,7 +459,7 @@ public class AzFileObject extends AbstractFileObject
     }
 
     /**
-     * Returns the file's list of children.
+     * Returns the list of children.
      *
      * @return The list of children
      * @throws FileSystemException If there was a problem listing children
