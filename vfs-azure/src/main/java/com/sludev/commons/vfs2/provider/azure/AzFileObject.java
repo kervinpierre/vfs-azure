@@ -21,11 +21,9 @@ import com.microsoft.azure.storage.blob.BlobContainerProperties;
 import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -45,36 +43,33 @@ import org.apache.commons.vfs2.provider.URLFileName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.commons.vfs2.FileName.SEPARATOR;
-
-
 /**
  * The main FileObject class in this provider.  It holds most of the API callbacks
  * for the provider.
- * 
+ *
  * @author Kervin Pierre
  */
 public class AzFileObject extends AbstractFileObject
 {
     private static final Logger log = LoggerFactory.getLogger(AzFileObject.class);
-    
+
     private final AzFileSystem fileSystem;
     private CloudBlobContainer currContainer;
     private CloudBlockBlob currBlob;
     private BlobContainerProperties currContainerProperties;
     private BlobProperties currBlobProperties;
-    
+
     /**
      * Creates a new FileObject for use with a remote Azure Blob Storage file or folder.
-     * 
+     *
      * @param name
-     * @param fileSystem 
+     * @param fileSystem
      */
     protected AzFileObject(final AbstractFileName name, final AzFileSystem fileSystem)
     {
         super(name, fileSystem);
         this.fileSystem = fileSystem;
-        
+
         currContainer = null;
         currBlob = null;
         currBlobProperties = null;
@@ -83,86 +78,86 @@ public class AzFileObject extends AbstractFileObject
 
     /**
      * Convenience method that returns the container and path from the current URL.
-     * 
+     *
      * @return A tuple containing the container name and the path.
      */
     protected Pair<String, String> getContainerAndPath()
     {
         Pair<String, String> res = null;
-        
+
         try
         {
             URLFileName currName = (URLFileName)getName();
-           
+
             String currNameStr = currName.getPath();
             currNameStr = StringUtils.stripStart(currNameStr, "/");
-            
+
             if( StringUtils.isBlank(currNameStr) )
             {
-                log.warn( 
+                log.warn(
                         String.format("getContainerAndPath() : Path '%s' does not appear to be valid", currNameStr));
-                
+
                 return null;
             }
-            
+
             // Deal with the special case of the container root.
             if( StringUtils.contains(currNameStr, "/") == false )
             {
                 // Container and root
                 return new ImmutablePair<>(currNameStr, "/");
             }
-            
+
             String[] resArray = StringUtils.split(currNameStr, "/", 2);
-            
+
             res = new ImmutablePair<>(resArray[0], resArray[1]);
         }
         catch (Exception ex)
         {
-            log.error( 
+            log.error(
                   String.format("getContainerAndPath() : Path does not appear to be valid"), ex);
         }
-        
+
         return res;
     }
-    
+
     /**
      * Callback used when this FileObject is first used.  We connect to the remote
      * server and check early so we can 'fail-fast'.  If there are no issues then
      * this FileObject can be used.
-     * 
-     * @throws Exception 
+     *
+     * @throws Exception
      */
     @Override
     protected void doAttach() throws Exception
     {
         Pair<String, String> path = getContainerAndPath();
-        
+
         try
         {
             // Check the container.  Force a network call so we can fail-fast
-            currContainer 
-                = fileSystem.getClient().getContainerReference(path.getLeft()); 
+            currContainer
+                = fileSystem.getClient().getContainerReference(path.getLeft());
         }
         catch (RuntimeException ex)
         {
-            log.error( String.format("doAttach() Exception for '%s' : '%s'", 
+            log.error( String.format("doAttach() Exception for '%s' : '%s'",
                                      path.getLeft(), path.getRight()), ex);
-            
+
             throw ex;
         }
-        
+
         currBlob = currContainer.getBlockBlobReference(path.getRight());
     }
-    
+
     /**
      * Callback for checking the type of the current FileObject.  Typically can
      * be of type...
      * FILE for regular remote files
      * FOLDER for regular remote containers
      * IMAGINARY for a path that does not exist remotely.
-     * 
+     *
      * @return
-     * @throws Exception 
+     * @throws Exception
      */
     @Override
     protected FileType doGetType() throws Exception
@@ -177,10 +172,9 @@ public class AzFileObject extends AbstractFileObject
         }
         else
         {
-
             // Blob Service does not have folders.  Just files with path separators in
             // their names.
-            
+
             // Here's the trick for folders.
             //
             // Do a listing on that prefix.  If it returns anything, after not
@@ -204,7 +198,7 @@ public class AzFileObject extends AbstractFileObject
             }
 
             //Hack to get type as folder instead of imaginary, This would need to be revisited once we get sophisticated solution
-            if( blobs.iterator().hasNext() || !prefix.contains(".")) 
+            if( blobs.iterator().hasNext() || !prefix.contains("."))
             {
                 res = FileType.FOLDER;
             }
@@ -213,7 +207,7 @@ public class AzFileObject extends AbstractFileObject
                 res = FileType.IMAGINARY;
             }
         }
-        
+
         return res;
     }
 
@@ -229,7 +223,7 @@ public class AzFileObject extends AbstractFileObject
     protected String[] doListChildren() throws Exception
     {
         String[] res = null;
-        
+
         Pair<String, String> path = getContainerAndPath();
 
         String prefix = path.getRight();
@@ -238,7 +232,7 @@ public class AzFileObject extends AbstractFileObject
             // We need folders ( prefixes ) to end with a slash
             prefix += "/";
         }
-        
+
         Iterable<ListBlobItem> blobs = null;
         if( prefix.equals("/") )
         {
@@ -249,9 +243,9 @@ public class AzFileObject extends AbstractFileObject
         {
             blobs = currContainer.listBlobs(prefix);
         }
-        
+
         List<ListBlobItem> blobList = new ArrayList<>();
-        
+
         // Pull it all in memory and work from there
         CollectionUtils.addAll(blobList, blobs);
         ArrayList<String> resList = new ArrayList<>();
@@ -260,9 +254,9 @@ public class AzFileObject extends AbstractFileObject
             String currBlobStr = currBlob.getUri().getPath();
             resList.add(currBlobStr);
         }
-        
+
         res = resList.toArray(new String[resList.size()]);
-        
+
         return res;
     }
 
@@ -270,7 +264,7 @@ public class AzFileObject extends AbstractFileObject
 //    protected FileObject[] doListChildrenResolved() throws Exception
 //    {
 //        FileObject[] res = null;
-//        
+//
 //        Pair<String, String> path = getContainerAndPath();
 //
 //        String prefix = path.getRight();
@@ -279,7 +273,7 @@ public class AzFileObject extends AbstractFileObject
 //            // We need folders ( prefixes ) to end with a slash
 //            prefix += "/";
 //        }
-//        
+//
 //        Iterable<ListBlobItem> blobs = null;
 //        if( prefix.equals("/") )
 //        {
@@ -290,9 +284,9 @@ public class AzFileObject extends AbstractFileObject
 //        {
 //            blobs = currContainer.listBlobs(prefix);
 //        }
-//        
+//
 //        List<ListBlobItem> blobList = new ArrayList<>();
-//        
+//
 //        // Pull it all in memory and work from there
 //        CollectionUtils.addAll(blobList, blobs);
 //        ArrayList<AzFileObject> resList = new ArrayList<>();
@@ -301,12 +295,12 @@ public class AzFileObject extends AbstractFileObject
 //            String currBlobStr = currBlobItem.getUri().getPath();
 //            AzFileObject childBlob = new AzFileObject();
 //            FileName currName = getFileSystem().getFileSystemManager().resolveName(name, file, NameScope.CHILD);
-//            
+//
 //            resList.add(currBlobStr);
 //        }
-//        
+//
 //        res = resList.toArray(new String[resList.size()]);
-//        
+//
 //        return res;
 //    }
 
@@ -318,40 +312,40 @@ public class AzFileObject extends AbstractFileObject
             currBlobProperties = currBlob.getProperties();
         }
     }
-    
+
     /**
      * Callback for handling "content size" requests by the provider.
-     * 
+     *
      * @return The number of bytes in the File Object's content
-     * @throws Exception 
+     * @throws Exception
      */
     @Override
     protected long doGetContentSize() throws Exception
     {
         long res = -1;
-        
+
         checkBlobProperties();
         res = currBlobProperties.getLength();
-        
+
         return res;
     }
 
     /**
      * Get an InputStream for reading the content of this File Object.
      * @return The InputStream object for reading.
-     * @throws Exception 
+     * @throws Exception
      */
     @Override
     protected InputStream doGetInputStream() throws Exception
     {
         BlobInputStream in = currBlob.openInputStream();
-        
+
         return in;
     }
 
     /**
      * Callback for handling delete on this File Object
-     * @throws Exception 
+     * @throws Exception
      */
     @Override
     protected void doDelete() throws Exception
@@ -365,29 +359,21 @@ public class AzFileObject extends AbstractFileObject
     /**
      * Callback for handling create folder requests.  Since there are no folders
      * in Azure Cloud Storage this call is ignored.
-     * 
-     * @throws Exception 
+     *
+     * @throws Exception
      */
     @Override
     protected void doCreateFolder() throws Exception
     {
 
         log.info(String.format("doCreateFolder() called."));
-
-        String dirName = currBlob.getName().endsWith(SEPARATOR) ? currBlob.getName() : currBlob.getName() + SEPARATOR+"FlexONE";
-
-        CloudBlockBlob blob = currContainer.getBlockBlobReference(dirName);
-
-        InputStream input = new ByteArrayInputStream(new byte[0]);
-
-        blob.upload(input, 0);
     }
 
     /**
      * Used for creating folders.  It's not used since Azure Cloud Storage does not have
      * the concept of folders.
-     * 
-     * @throws FileSystemException 
+     *
+     * @throws FileSystemException
      */
     @Override
     public void createFolder() throws FileSystemException
@@ -399,7 +385,7 @@ public class AzFileObject extends AbstractFileObject
      * Callback for getting an OutputStream for writing into Azure Blob Storage file.
      * @param bAppend  bAppend true if the file should be appended to, false if it should be overwritten.
      * @return
-     * @throws Exception 
+     * @throws Exception
      */
     @Override
     protected OutputStream doGetOutputStream(boolean bAppend) throws Exception
@@ -407,15 +393,15 @@ public class AzFileObject extends AbstractFileObject
         OutputStream res;
 
         res = currBlob.openOutputStream();
-        
+
         return res;
     }
 
     /**
      * Callback for use when detaching this File Object from Azure Blob Storage.
-     * 
+     *
      * The File Object should be reusable after <code>attach()</code> call.
-     * @throws Exception 
+     * @throws Exception
      */
     @Override
     protected void doDetach() throws Exception
@@ -428,20 +414,20 @@ public class AzFileObject extends AbstractFileObject
 
     /**
      * Callback for handling the <code>getLastModifiedTime()</code> Commons VFS API call.
-     * 
+     *
      * @return Time since the file has last been modified
-     * @throws Exception 
+     * @throws Exception
      */
     @Override
     protected long doGetLastModifiedTime() throws Exception
     {
         long res;
-        
+
         checkBlobProperties();
         Date lm = currBlobProperties.getLastModified();
-        
+
         res = lm.getTime();
-        
+
         return res;
     }
 
