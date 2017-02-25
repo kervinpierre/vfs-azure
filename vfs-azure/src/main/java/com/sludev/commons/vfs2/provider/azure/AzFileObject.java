@@ -23,25 +23,31 @@ import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
-
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.net.io.CopyStreamListener;
 import org.apache.commons.vfs2.FileNotFolderException;
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSelector;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileType;
+import org.apache.commons.vfs2.NameScope;
+import org.apache.commons.vfs2.Selectors;
 import org.apache.commons.vfs2.provider.AbstractFileName;
 import org.apache.commons.vfs2.provider.AbstractFileObject;
 import org.apache.commons.vfs2.provider.URLFileName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 /**
  * The main FileObject class in this provider.  It holds most of the API callbacks
@@ -58,6 +64,22 @@ public class AzFileObject extends AbstractFileObject
     private CloudBlockBlob currBlob;
     private BlobContainerProperties currContainerProperties;
     private BlobProperties currBlobProperties;
+
+    static Integer uploadBlockSize = null;
+
+    static {
+        int MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
+
+        Integer uploadBlockSize = null;
+
+        String uploadBlockSizeProperty = System.getProperty("azure.upload.block.size");
+        if (NumberUtils.isNumber(uploadBlockSizeProperty)) {
+            uploadBlockSize = (int) NumberUtils.toLong(uploadBlockSizeProperty) * MEGABYTES_TO_BYTES_MULTIPLIER;
+        }
+
+        log.info("Azure upload block size : " + uploadBlockSize + " Bytes");
+    }
+
 
     /**
      * Creates a new FileObject for use with a remote Azure Blob Storage file or folder.
@@ -466,5 +488,69 @@ public class AzFileObject extends AbstractFileObject
         }
 
         return super.getChildren();
+    }
+
+
+    /**
+     * Override to use Azure Blob Java Client library in upload. This is efficient then using default.
+     */
+    @Override
+    public void copyFrom(final FileObject file, final FileSelector selector)
+            throws FileSystemException {
+
+        this.copyFrom(file, selector, (CopyStreamListener) null);
+    }
+
+
+    public void copyFrom(FileObject file, FileSelector selector, CopyStreamListener copyStreamListener)
+            throws FileSystemException {
+
+        log.debug("Inside AZFileObject copy");
+
+        if (!file.exists()) {
+            throw new FileSystemException("vfs.provider/copy-missing-file.error", file);
+        }
+        else {
+            ArrayList files = new ArrayList();
+            file.findFiles(selector, false, files);
+            int count = files.size();
+
+            for (int i = 0; i < count; ++i) {
+                FileObject srcFile = (FileObject) files.get(i);
+                String relPath = file.getName().getRelativeName(srcFile.getName());
+                FileObject destFile = this.resolveFile(relPath, NameScope.DESCENDENT_OR_SELF);
+                if (destFile.exists() && destFile.getType() != srcFile.getType()) {
+                    destFile.delete(Selectors.SELECT_ALL);
+                }
+
+                try {
+                    if (srcFile.getType().hasContent()) {
+                        try {
+
+                            InputStream sourceStream = srcFile.getContent().getInputStream();
+                            long length = srcFile.getContent().getSize();
+                            if (uploadBlockSize != null) {
+                                currBlob.setStreamWriteSizeInBytes(uploadBlockSize);
+                            }
+                            currBlob.upload(sourceStream, length);
+                        }
+                        finally {
+                            destFile.close();
+                            srcFile.close();
+                        }
+                    }
+                    else if (srcFile.getType().hasChildren()) {
+                        destFile.createFolder();
+                    }
+                }
+                catch (IOException io) {
+                    throw new FileSystemException("vfs.provider/copy-file.error", new Object[] { srcFile, destFile }, io);
+                }
+                catch (StorageException se) {
+                    throw new FileSystemException("vfs.provider/copy-file.error", new Object[] { srcFile, destFile }, se);
+                }
+            }
+
+        }
     }
 }

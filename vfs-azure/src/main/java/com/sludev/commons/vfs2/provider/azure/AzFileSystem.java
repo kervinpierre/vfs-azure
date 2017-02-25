@@ -16,8 +16,11 @@
  */
 package com.sludev.commons.vfs2.provider.azure;
 
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import java.util.Collection;
+
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.vfs2.Capability;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystem;
@@ -41,6 +44,34 @@ public class AzFileSystem
     
     private final CloudBlobClient client;
 
+    static BlobRequestOptions defaultRequestOptions = new BlobRequestOptions();
+
+    static {
+        int MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
+
+        Integer singleBlockSize = null;
+
+        String singleBlockSizeProperty = System.getProperty("azure.single.upload.block.size");
+        if (NumberUtils.isNumber(singleBlockSizeProperty)) {
+            singleBlockSize = (int) NumberUtils.toLong(singleBlockSizeProperty) * MEGABYTES_TO_BYTES_MULTIPLIER;
+        }
+
+        log.info("Azure single upload block size : " + singleBlockSize + " Bytes");
+
+        Integer parallelUploadThread = null;
+
+        String threadProperty = System.getProperty("azure.parallel.upload.thread");
+        if (NumberUtils.isNumber(threadProperty)) {
+            parallelUploadThread = NumberUtils.toInt(threadProperty);
+        }
+
+        log.info("Azure parallel upload threads : " + parallelUploadThread);
+
+        defaultRequestOptions.setSingleBlobPutThresholdInBytes(singleBlockSize);
+        defaultRequestOptions.setConcurrentRequestCount(parallelUploadThread);
+    }
+
+
     /**
      * The single client for interacting with Azure Blob Storage.
      * 
@@ -56,6 +87,7 @@ public class AzFileSystem
     {
         super(rootName, null, fileSystemOptions);
         this.client = client;
+        this.client.setDefaultRequestOptions(defaultRequestOptions);
     }
     
     @Override
