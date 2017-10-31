@@ -16,14 +16,17 @@
  */
 package com.sludev.commons.vfs2.provider.azure;
 
+import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobContainerProperties;
 import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -67,21 +70,32 @@ public class AzFileObject extends AbstractFileObject {
     private BlobContainerProperties currContainerProperties;
     private BlobProperties currBlobProperties;
 
-    static Integer uploadBlockSize = null;
+    private static final int MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
+
+    //azure concurrent upload request count
+    private static int AZURE_CONCURRENT_REQUEST_CCOUNT = 5;
+
+    private static Boolean ENABLE_AZURE_STORAGE_LOG = false;
+
+    static Integer UPLOAD_BLOCK_SIZE = 2; //in MB's
 
     private static Tika tika = new Tika();
 
     static {
-        int MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
-
-        Integer uploadBlockSize = null;
 
         String uploadBlockSizeProperty = System.getProperty("azure.upload.block.size");
-        if (NumberUtils.isNumber(uploadBlockSizeProperty)) {
-            uploadBlockSize = (int) NumberUtils.toLong(uploadBlockSizeProperty) * MEGABYTES_TO_BYTES_MULTIPLIER;
+        UPLOAD_BLOCK_SIZE = (int) NumberUtils.toLong(uploadBlockSizeProperty, UPLOAD_BLOCK_SIZE) * MEGABYTES_TO_BYTES_MULTIPLIER;
+
+        String azureConcurrentReqCount = System.getProperty("azure.concurrent.request.count");
+        AZURE_CONCURRENT_REQUEST_CCOUNT = NumberUtils.toInt(azureConcurrentReqCount, AZURE_CONCURRENT_REQUEST_CCOUNT);
+
+        String enableAzureLogging = System.getProperty("azure.enable.logging");
+        if (StringUtils.isNotEmpty(enableAzureLogging)) {
+            ENABLE_AZURE_STORAGE_LOG = BooleanUtils.toBoolean(enableAzureLogging);
         }
 
-        log.info("Azure upload block size : " + uploadBlockSize + " Bytes");
+        log.info("Azure upload block size : {} Bytes, concurrent request count: {}", UPLOAD_BLOCK_SIZE,
+                AZURE_CONCURRENT_REQUEST_CCOUNT);
     }
 
     /**
@@ -410,9 +424,7 @@ public class AzFileObject extends AbstractFileObject {
     @Override
     protected OutputStream doGetOutputStream(boolean bAppend) throws Exception {
 
-        OutputStream res;
-
-        res = currBlob.openOutputStream();
+        OutputStream res = currBlob.openOutputStream();
 
         return res;
     }
@@ -532,8 +544,8 @@ public class AzFileObject extends AbstractFileObject {
 
                             InputStream sourceStream = srcFile.getContent().getInputStream();
                             long length = srcFile.getContent().getSize();
-                            if (uploadBlockSize != null) {
-                                currBlob.setStreamWriteSizeInBytes(uploadBlockSize);
+                            if (UPLOAD_BLOCK_SIZE != null) {
+                                currBlob.setStreamWriteSizeInBytes(UPLOAD_BLOCK_SIZE);
                             }
 
                             if (currBlobProperties == null) {
@@ -554,7 +566,13 @@ public class AzFileObject extends AbstractFileObject {
                                 log.debug("currBlobProperties is null");
                             }
 
-                            currBlob.upload(sourceStream, length);
+                            OperationContext opContext = new OperationContext();
+                            opContext.setLoggingEnabled(ENABLE_AZURE_STORAGE_LOG);
+
+                            BlobRequestOptions modifiedOptions = new BlobRequestOptions();
+                            modifiedOptions.setConcurrentRequestCount(AZURE_CONCURRENT_REQUEST_CCOUNT);
+
+                            currBlob.upload(sourceStream, length, null, modifiedOptions, opContext);
 
                         }
                         finally {
@@ -575,5 +593,7 @@ public class AzFileObject extends AbstractFileObject {
             }
 
         }
+
+        log.debug("Exit AZFileObject copy");
     }
 }
