@@ -73,11 +73,11 @@ public class AzFileObject extends AbstractFileObject {
     private static final int MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
 
     //azure concurrent upload request count
-    private static int AZURE_CONCURRENT_REQUEST_CCOUNT = 5;
+    private static int AZURE_CONCURRENT_REQUEST_CCOUNT = 3;
 
     private static Boolean ENABLE_AZURE_STORAGE_LOG = false;
 
-    static Integer UPLOAD_BLOCK_SIZE = 2; //in MB's
+    static Integer UPLOAD_BLOCK_SIZE = 3; //in MB's
 
     private static Tika tika = new Tika();
 
