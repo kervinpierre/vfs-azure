@@ -72,9 +72,6 @@ public class AzFileObject extends AbstractFileObject {
 
     private static final int MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
 
-    //azure concurrent upload request count
-    private static int AZURE_CONCURRENT_REQUEST_CCOUNT = 3;
-
     private static Boolean ENABLE_AZURE_STORAGE_LOG = false;
 
     static Integer UPLOAD_BLOCK_SIZE = 3; //in MB's
@@ -86,16 +83,12 @@ public class AzFileObject extends AbstractFileObject {
         String uploadBlockSizeProperty = System.getProperty("azure.upload.block.size");
         UPLOAD_BLOCK_SIZE = (int) NumberUtils.toLong(uploadBlockSizeProperty, UPLOAD_BLOCK_SIZE) * MEGABYTES_TO_BYTES_MULTIPLIER;
 
-        String azureConcurrentReqCount = System.getProperty("azure.concurrent.request.count");
-        AZURE_CONCURRENT_REQUEST_CCOUNT = NumberUtils.toInt(azureConcurrentReqCount, AZURE_CONCURRENT_REQUEST_CCOUNT);
-
-        String enableAzureLogging = System.getProperty("azure.enable.logging");
+         String enableAzureLogging = System.getProperty("azure.enable.logging");
         if (StringUtils.isNotEmpty(enableAzureLogging)) {
             ENABLE_AZURE_STORAGE_LOG = BooleanUtils.toBoolean(enableAzureLogging);
         }
 
-        log.info("Azure upload block size : {} Bytes, concurrent request count: {}", UPLOAD_BLOCK_SIZE,
-                AZURE_CONCURRENT_REQUEST_CCOUNT);
+        log.info("Azure upload block size : {} Bytes, concurrent request count: {}", UPLOAD_BLOCK_SIZE);
     }
 
     /**
@@ -569,10 +562,7 @@ public class AzFileObject extends AbstractFileObject {
                             OperationContext opContext = new OperationContext();
                             opContext.setLoggingEnabled(ENABLE_AZURE_STORAGE_LOG);
 
-                            BlobRequestOptions modifiedOptions = new BlobRequestOptions();
-                            modifiedOptions.setConcurrentRequestCount(AZURE_CONCURRENT_REQUEST_CCOUNT);
-
-                            currBlob.upload(sourceStream, length, null, modifiedOptions, opContext);
+                            currBlob.upload(sourceStream, length, null, null, opContext);
 
                         }
                         finally {

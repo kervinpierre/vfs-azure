@@ -58,7 +58,7 @@ public class AzFileSystem
 
         log.info("Azure single upload block size : " + singleBlockSize + " Bytes");
 
-        Integer parallelUploadThread = null;
+        Integer parallelUploadThread = 2;
 
         String threadProperty = System.getProperty("azure.parallel.upload.thread");
         if (NumberUtils.isNumber(threadProperty)) {
