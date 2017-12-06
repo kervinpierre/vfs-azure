@@ -83,7 +83,7 @@ public class AzFileObject extends AbstractFileObject {
         String uploadBlockSizeProperty = System.getProperty("azure.upload.block.size");
         UPLOAD_BLOCK_SIZE = (int) NumberUtils.toLong(uploadBlockSizeProperty, UPLOAD_BLOCK_SIZE) * MEGABYTES_TO_BYTES_MULTIPLIER;
 
-         String enableAzureLogging = System.getProperty("azure.enable.logging");
+        String enableAzureLogging = System.getProperty("azure.enable.logging");
         if (StringUtils.isNotEmpty(enableAzureLogging)) {
             ENABLE_AZURE_STORAGE_LOG = BooleanUtils.toBoolean(enableAzureLogging);
         }
@@ -193,19 +193,22 @@ public class AzFileObject extends AbstractFileObject {
 
         FileType res;
 
-        Pair<String, String> path = getContainerAndPath();
+        URLFileName currName = (URLFileName) getName();
+
+        if (currName != null && currName.getType() == FileType.FOLDER) {
+            return FileType.FOLDER;
+        }
 
         if (currBlob.exists()) {
             res = FileType.FILE;
         }
         else {
-            // Blob Service does not have folders.  Just files with path separators in
-            // their names.
+            // Blob Service does not have folders.  Just files with path separators in their names.
 
             // Here's the trick for folders.
             //
-            // Do a listing on that prefix.  If it returns anything, after not
-            // existing, then it's a folder.
+            // Do a listing on that prefix.  If it returns anything, after not existing, then it's a folder.
+            Pair<String, String> path = getContainerAndPath();
             String prefix = path.getRight();
             if (prefix.endsWith("/") == false) {
                 // We need folders ( prefixes ) to end with a slash
@@ -221,8 +224,7 @@ public class AzFileObject extends AbstractFileObject {
                 blobs = currContainer.listBlobs(prefix);
             }
 
-            //Hack to get type as folder instead of imaginary, This would need to be revisited once we get sophisticated solution
-            if (blobs.iterator().hasNext() || !prefix.contains(".")) {
+            if (blobs.iterator().hasNext()) {
                 res = FileType.FOLDER;
             }
             else {
