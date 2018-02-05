@@ -21,7 +21,6 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobContainerProperties;
 import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
-import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
@@ -89,6 +88,12 @@ public class AzFileObject extends AbstractFileObject {
         }
 
         log.info("Azure upload block size : {} Bytes, concurrent request count: {}", UPLOAD_BLOCK_SIZE);
+    }
+
+
+    public CloudBlockBlob getCurrBlob() {
+
+        return this.currBlob;
     }
 
     /**
@@ -533,6 +538,8 @@ public class AzFileObject extends AbstractFileObject {
                     destFile.delete(Selectors.SELECT_ALL);
                 }
 
+                CloudBlockBlob fileCurrBlob = getFileCurrBlob(destFile);
+
                 try {
                     if (srcFile.getType().hasContent()) {
                         try {
@@ -540,7 +547,7 @@ public class AzFileObject extends AbstractFileObject {
                             InputStream sourceStream = srcFile.getContent().getInputStream();
                             long length = srcFile.getContent().getSize();
                             if (UPLOAD_BLOCK_SIZE != null) {
-                                currBlob.setStreamWriteSizeInBytes(UPLOAD_BLOCK_SIZE);
+                                fileCurrBlob.setStreamWriteSizeInBytes(UPLOAD_BLOCK_SIZE);
                             }
 
                             if (currBlobProperties == null) {
@@ -564,7 +571,7 @@ public class AzFileObject extends AbstractFileObject {
                             OperationContext opContext = new OperationContext();
                             opContext.setLoggingEnabled(ENABLE_AZURE_STORAGE_LOG);
 
-                            currBlob.upload(sourceStream, length, null, null, opContext);
+                            fileCurrBlob.upload(sourceStream, length, null, null, opContext);
 
                         }
                         finally {
@@ -587,5 +594,22 @@ public class AzFileObject extends AbstractFileObject {
         }
 
         log.debug("Exit AZFileObject copy");
+    }
+
+
+    private CloudBlockBlob getFileCurrBlob(FileObject destFile) {
+
+        CloudBlockBlob cloudBlockBlob = currBlob;
+        if (AzFileObject.class.isAssignableFrom(destFile.getClass())) {
+
+            cloudBlockBlob = ((AzFileObject) destFile).getCurrBlob();
+            if (cloudBlockBlob == null) {
+
+                cloudBlockBlob = currBlob;
+            }
+
+        }
+
+        return cloudBlockBlob;
     }
 }
