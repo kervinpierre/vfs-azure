@@ -538,6 +538,9 @@ public class AzFileObject extends AbstractFileObject {
                     destFile.delete(Selectors.SELECT_ALL);
                 }
 
+                // We need to reques the CloudBlockBlock for the that we want to upload, as we were always using the
+                // CloudBlockBlob of the root directory when we were trying to copy directories, hence it was always overwriting
+                // the root directory on azure storage.
                 CloudBlockBlob fileCurrBlob = getFileCurrBlob(destFile);
 
                 try {
@@ -597,6 +600,11 @@ public class AzFileObject extends AbstractFileObject {
     }
 
 
+    /**
+     * Returns the file CloudBlockBloc of the give file.
+     * If the file is not the type of AzFileObject or does not have its own CloudBlockBloc it is going to return the
+     * CloudBlockBlob of the current file.
+     */
     private CloudBlockBlob getFileCurrBlob(FileObject destFile) {
 
         CloudBlockBlob cloudBlockBlob = currBlob;
