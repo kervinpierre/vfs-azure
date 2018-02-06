@@ -18,7 +18,6 @@ package com.sludev.commons.vfs2.provider.azure;
 
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.BlobContainerProperties;
 import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
@@ -66,7 +65,6 @@ public class AzFileObject extends AbstractFileObject {
     private final AzFileSystem fileSystem;
     private CloudBlobContainer currContainer;
     private CloudBlockBlob currBlob;
-    private BlobContainerProperties currContainerProperties;
     private BlobProperties currBlobProperties;
 
     private static final int MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
@@ -110,7 +108,6 @@ public class AzFileObject extends AbstractFileObject {
         currContainer = null;
         currBlob = null;
         currBlobProperties = null;
-        currContainerProperties = null;
     }
 
 
@@ -443,7 +440,6 @@ public class AzFileObject extends AbstractFileObject {
         currBlob = null;
         currContainer = null;
         currBlobProperties = null;
-        currContainerProperties = null;
     }
 
 
@@ -538,7 +534,7 @@ public class AzFileObject extends AbstractFileObject {
                     destFile.delete(Selectors.SELECT_ALL);
                 }
 
-                // We need to reques the CloudBlockBlock for the that we want to upload, as we were always using the
+                // We need to requires the CloudBlockBlob for the that we want to upload, as we were always using the
                 // CloudBlockBlob of the root directory when we were trying to copy directories, hence it was always overwriting
                 // the root directory on azure storage.
                 CloudBlockBlob fileCurrBlob = getFileCurrBlob(destFile);
@@ -601,8 +597,8 @@ public class AzFileObject extends AbstractFileObject {
 
 
     /**
-     * Returns the file CloudBlockBloc of the give file.
-     * If the file is not the type of AzFileObject or does not have its own CloudBlockBloc it is going to return the
+     * Returns the file CloudBlockBlob of the give file.
+     * If the file is not the type of AzFileObject or does not have its own CloudBlockBlob it is going to return the
      * CloudBlockBlob of the current file.
      */
     private CloudBlockBlob getFileCurrBlob(FileObject destFile) {
