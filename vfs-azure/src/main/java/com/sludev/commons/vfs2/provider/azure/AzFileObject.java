@@ -553,18 +553,16 @@ public class AzFileObject extends AbstractFileObject {
                                 fileCurrBlob.setStreamWriteSizeInBytes(UPLOAD_BLOCK_SIZE);
                             }
 
-                            if (currBlobProperties == null) {
-                                currBlobProperties = fileCurrBlob.getProperties();
-                            }
+                            BlobProperties fileCurrBlobProperties = fileCurrBlob.getProperties();
 
-                            if (currBlobProperties != null) {
+                            if (fileCurrBlobProperties != null) {
                                 String fileName = srcFile.getName().getBaseName();
                                 String contentType = tika.detect(fileName);
 
                                 log.debug("Content type is {} for {} file", contentType, fileName);
 
                                 if (contentType != null) {
-                                    currBlobProperties.setContentType(contentType);
+                                    fileCurrBlobProperties.setContentType(contentType);
                                 }
                             }
                             else {
