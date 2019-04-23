@@ -168,7 +168,7 @@ public class AzFileProvider
     @Override
     protected FileSystem doCreateFileSystem(FileName rootName, FileSystemOptions fileSystemOptions) throws FileSystemException
     {
-        AzFileSystem fileSystem = null;
+        AzFileSystem fileSystem;
         GenericFileName genRootName = (GenericFileName)rootName;
         
         StorageCredentials storageCreds;
@@ -190,7 +190,7 @@ public class AzFileProvider
                     UserAuthenticationData.PASSWORD, UserAuthenticatorUtils.toChar(genRootName.getPassword())));
         
             storageCreds = new StorageCredentialsAccountAndKey(currAcct, currKey);           
-            storageAccount = new CloudStorageAccount(storageCreds);
+            storageAccount = new CloudStorageAccount(storageCreds, true);
             
             client = storageAccount.createCloudBlobClient();
             
