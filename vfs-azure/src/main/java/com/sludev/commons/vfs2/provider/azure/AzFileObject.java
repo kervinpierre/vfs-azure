@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -88,11 +89,11 @@ public class AzFileObject extends AbstractFileObject {
         log.info("Azure upload block size : {} Bytes, concurrent request count: {}", UPLOAD_BLOCK_SIZE);
     }
 
-
     public CloudBlockBlob getCurrBlob() {
 
         return this.currBlob;
     }
+
 
     /**
      * Creates a new FileObject for use with a remote Azure Blob Storage file or folder.
@@ -540,7 +541,24 @@ public class AzFileObject extends AbstractFileObject {
                 CloudBlockBlob fileCurrBlob = getFileCurrBlob(destFile);
 
                 try {
-                    if (srcFile.getType().hasContent()) {
+                    if (srcFile.getType().hasChildren()) {
+                        destFile.createFolder();
+                    }
+                    else if (canCopyServerSide(srcFile, destFile)) {
+                        CloudBlockBlob currDestinationBlob = ((AzFileObject) destFile).getCurrBlob();
+                        CloudBlockBlob currSourceBlob = ((AzFileObject) srcFile).getCurrBlob();
+                        try {
+                            currDestinationBlob.startCopy(currSourceBlob);
+                        }
+                        catch (URISyntaxException e) {
+                            throw new FileSystemException("vfs.provider/copy-file.error", new Object[] { srcFile, destFile }, e);
+                        }
+                        finally {
+                            destFile.close();
+                            srcFile.close();
+                        }
+                    }
+                    else if (srcFile.getType().hasContent()) {
                         try {
 
                             InputStream sourceStream = srcFile.getContent().getInputStream();
@@ -576,8 +594,10 @@ public class AzFileObject extends AbstractFileObject {
                             srcFile.close();
                         }
                     }
-                    else if (srcFile.getType().hasChildren()) {
-                        destFile.createFolder();
+                    else {
+                        // nothing useful to do if no content and can't have children
+                        throw new FileSystemException("vfs.provider/copy-file.error", new Object[] { srcFile, destFile },
+                                new UnsupportedOperationException());
                     }
                 }
                 catch (IOException io) {
@@ -613,5 +633,71 @@ public class AzFileObject extends AbstractFileObject {
         }
 
         return cloudBlockBlob;
+    }
+
+
+    /**
+     * Compares account and container name to check possibilities of copying file using server to server copy option
+     *
+     * @param sourceFileObject
+     * @param destinationFileObject
+     * @return
+     */
+    private boolean canCopyServerSide(FileObject sourceFileObject, FileObject destinationFileObject) {
+
+        if (!(sourceFileObject instanceof AzFileObject) || !(destinationFileObject instanceof AzFileObject)) {
+            return false;
+        }
+
+        // No point to copy server side if their file system is different
+        if (!(sourceFileObject.getFileSystem() == destinationFileObject.getFileSystem())) {
+            return false;
+        }
+
+        AzFileObject azSourceFileObject = (AzFileObject) sourceFileObject;
+        AzFileObject azDestinationFileObject = (AzFileObject) destinationFileObject;
+
+        String sourceAccountName = getAccountName(azSourceFileObject);
+
+        String destinationAccountName = getAccountName(azDestinationFileObject);
+
+        if (sourceAccountName != null
+                && destinationAccountName != null
+                && sourceAccountName.equalsIgnoreCase(destinationAccountName)) {
+
+            String srcContainerName = azSourceFileObject.getContainerAndPath().getKey();
+            String destContainerName = azDestinationFileObject.getContainerAndPath().getKey();
+
+            return srcContainerName.equalsIgnoreCase(destContainerName);
+        }
+
+        return false;
+    }
+
+
+    /**
+     * Returns an account name from given azure file object
+     *
+     * @param azFileObject
+     * @return
+     */
+    private String getAccountName(AzFileObject azFileObject) {
+
+        AzFileSystem azFileSystem = (AzFileSystem) azFileObject.getFileSystem();
+
+        return azFileSystem.getClient() != null ? azFileSystem.getClient().getCredentials().getAccountName() : null;
+    }
+
+
+    /**
+     * Returns false to reply on copyFrom method in case moving/copying file within same azure container
+     *
+     * @param fileObject
+     * @return
+     */
+    @Override
+    public boolean canRenameTo(FileObject fileObject) {
+
+        return false;
     }
 }
