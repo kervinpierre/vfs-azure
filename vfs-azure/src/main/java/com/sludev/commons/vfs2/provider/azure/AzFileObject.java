@@ -637,7 +637,7 @@ public class AzFileObject extends AbstractFileObject {
 
 
     /**
-     * Compares account and container name to check possibilities of copying file using server to server copy option
+     * Compares credential to check possibilities of copying file at server side.
      *
      * @param sourceFileObject
      * @param destinationFileObject
@@ -646,11 +646,6 @@ public class AzFileObject extends AbstractFileObject {
     private boolean canCopyServerSide(FileObject sourceFileObject, FileObject destinationFileObject) {
 
         if (!(sourceFileObject instanceof AzFileObject) || !(destinationFileObject instanceof AzFileObject)) {
-            return false;
-        }
-
-        // No point to copy server side if their file system is different
-        if (!(sourceFileObject.getFileSystem() == destinationFileObject.getFileSystem())) {
             return false;
         }
 
@@ -663,7 +658,7 @@ public class AzFileObject extends AbstractFileObject {
 
         return sourceAccountName != null
                 && destinationAccountName != null
-                && sourceAccountName.equalsIgnoreCase(destinationAccountName);
+                && sourceAccountName.equals(destinationAccountName);
     }
 
 
@@ -679,6 +674,7 @@ public class AzFileObject extends AbstractFileObject {
 
         return azFileSystem.getClient() != null ? azFileSystem.getClient().getCredentials().getAccountName() : null;
     }
+
 
 
     /**
