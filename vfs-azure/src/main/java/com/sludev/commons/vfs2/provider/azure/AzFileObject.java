@@ -661,17 +661,9 @@ public class AzFileObject extends AbstractFileObject {
 
         String destinationAccountName = getAccountName(azDestinationFileObject);
 
-        if (sourceAccountName != null
+        return sourceAccountName != null
                 && destinationAccountName != null
-                && sourceAccountName.equalsIgnoreCase(destinationAccountName)) {
-
-            String srcContainerName = azSourceFileObject.getContainerAndPath().getKey();
-            String destContainerName = azDestinationFileObject.getContainerAndPath().getKey();
-
-            return srcContainerName.equalsIgnoreCase(destContainerName);
-        }
-
-        return false;
+                && sourceAccountName.equalsIgnoreCase(destinationAccountName);
     }
 
 
