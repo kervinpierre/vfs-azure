@@ -23,6 +23,8 @@ import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -48,9 +50,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.EnumSet;
+import java.util.GregorianCalendar;
 import java.util.List;
+
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
 
 
 /**
@@ -676,7 +685,6 @@ public class AzFileObject extends AbstractFileObject {
     }
 
 
-
     /**
      * Returns false to reply on copyFrom method in case moving/copying file within same azure container
      *
@@ -688,4 +696,39 @@ public class AzFileObject extends AbstractFileObject {
 
         return false;
     }
+
+
+    /**
+     * Generate signed url to directly access file.
+     *
+     * @param duration - in seconds
+     * @return
+     * @throws Exception
+     */
+    public URL signedURL(int duration) throws Exception {
+
+        if (isNull(this.currBlob)) {
+            this.doAttach();
+        }
+
+        if (nonNull(this.currBlob)) {
+            Date now = new Date();
+            calendar.setTime(now);
+            calendar.add(Calendar.SECOND, duration);
+
+            SharedAccessBlobPolicy policy = new SharedAccessBlobPolicy();
+            policy.setPermissions(EnumSet.of(SharedAccessBlobPermissions.READ));
+            policy.setSharedAccessStartTime(now);
+            policy.setSharedAccessExpiryTime(calendar.getTime());
+
+            String signedSignature = this.currBlob.generateSharedAccessSignature(policy, null);
+
+            return new URL(this.currBlob.getUri().toURL() + "?" + signedSignature);
+        }
+
+        return null;
+    }
+
+
+    private Calendar calendar = new GregorianCalendar();
 }
