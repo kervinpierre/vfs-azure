@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory;
  * // Create an Apache Commons VFS manager option and add 2 providers. Local file and Azure.
  * // All done programmatically
  * DefaultFileSystemManager currMan = new DefaultFileSystemManager();
- * currMan.addProvider(AzConstants.AZSBSCHEME, new AzFileProvider());
+ * currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
  * currMan.addProvider("file", new DefaultLocalFileProvider());
  * currMan.init(); 
 
@@ -77,7 +77,7 @@ import org.slf4j.LoggerFactory;
  * // Create a URL for creating this remote file
  * currFileNameStr = "test01.tmp";
  * String currUriStr = String.format("%s://%s/%s/%s", 
- *                    AzConstants.AZSBSCHEME, currHost, currContainerStr, currFileNameStr);
+ *                    AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
  * 
  * // Resolve the imaginary file remotely.  So we have a file object
  * FileObject currFile = currMan.resolveFile(currUriStr, opts);
@@ -152,7 +152,7 @@ public class AzFileProvider
      * 
      * @return 
      */
-    public FileSystemOptions getDefaultFileSystemOptions()
+    public static FileSystemOptions getDefaultFileSystemOptions()
     {
         return DEFAULT_OPTIONS;
     }
@@ -168,27 +168,16 @@ public class AzFileProvider
     @Override
     protected FileSystem doCreateFileSystem(FileName rootName, FileSystemOptions fileSystemOptions) throws FileSystemException
     {
-        AzFileSystem fileSystem = null;
+        AzFileSystem fileSystem;
         GenericFileName genRootName = (GenericFileName)rootName;
         
         StorageCredentials storageCreds;
         CloudStorageAccount storageAccount;
         CloudBlobClient client;
         
-        FileSystemOptions currFSO;
-        UserAuthenticator ua;
-        
-        if( fileSystemOptions == null )
-        {
-            currFSO = getDefaultFileSystemOptions();
-            ua = AzFileSystemConfigBuilder.getInstance().getUserAuthenticator(currFSO);  
-        }
-        else
-        {
-            currFSO = fileSystemOptions;
-            ua = DefaultFileSystemConfigBuilder.getInstance().getUserAuthenticator(currFSO);
-        }
-        
+        FileSystemOptions currFSO = (fileSystemOptions != null) ? fileSystemOptions : getDefaultFileSystemOptions();
+        UserAuthenticator ua = DefaultFileSystemConfigBuilder.getInstance().getUserAuthenticator(currFSO);
+
         UserAuthenticationData authData = null;
         try
         {
@@ -201,7 +190,7 @@ public class AzFileProvider
                     UserAuthenticationData.PASSWORD, UserAuthenticatorUtils.toChar(genRootName.getPassword())));
         
             storageCreds = new StorageCredentialsAccountAndKey(currAcct, currKey);           
-            storageAccount = new CloudStorageAccount(storageCreds);
+            storageAccount = new CloudStorageAccount(storageCreds, true);
             
             client = storageAccount.createCloudBlobClient();
             

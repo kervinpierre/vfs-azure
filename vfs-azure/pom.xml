@@ -4,7 +4,7 @@
     
     <groupId>com.sludev.commons</groupId>
     <artifactId>vfs-azure</artifactId>
-    <version>1.1</version>
+    <version>1.3.8</version>
     
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Azure Blob Storage Provider for the Apache Commons VFS library.</description>
@@ -134,10 +134,17 @@
         </dependency>
         
         <dependency>
+            <groupId>commons-net</groupId>
+            <artifactId>commons-net</artifactId>
+            <version>3.3</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-storage</artifactId>
-            <version>2.1.0</version>
+            <version>6.1.0</version>
         </dependency>
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -149,7 +156,14 @@
             <artifactId>slf4j-api</artifactId>
             <version>1.7.10</version>
         </dependency>
-        
+
+        <!-- https://mvnrepository.com/artifact/org.apache.tika/tika-core -->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>1.16</version>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
